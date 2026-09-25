@@ -71,6 +71,25 @@ def convolveX(image, kernel):
 
     return output
 
+def convolveY(image, kernel):
+    y_dim, x_dim = image.shape
+
+    kernel_size = kernel.shape[0]
+
+    padded_image = np.pad(image,
+                          pad_width=((kernel_size//2, kernel_size//2), (0,0)),
+                          mode='edge')
+
+    output = np.zeros((y_dim,x_dim))
+
+    for y in range(y_dim):
+        for x in range(x_dim):
+            region = padded_image[y: y + kernel_size, x]
+            region = region[:,None]
+
+            output[y,x] = np.sum(region * kernel)
+
+    return output
 
 
 
@@ -84,8 +103,11 @@ img = Image.open(sys.argv[1]).convert('L')
 
 img_array = np.array(img)
 
-kernel = createGaussian(5,1000)
+kernel = createGaussian(5,100)
 
-output = convolveX(img_array,kernel )
-img = Image.fromarray(output)
-img.show()
+outputX = convolveX(img_array,kernel )
+outputY = convolveY(img_array,kernel.T)
+
+Image.fromarray(outputX).show()
+
+Image.fromarray(outputY).show()
