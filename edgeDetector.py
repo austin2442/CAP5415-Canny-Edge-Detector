@@ -85,12 +85,34 @@ def convolveY(image, kernel):
     for y in range(y_dim):
         for x in range(x_dim):
             region = padded_image[y: y + kernel_size, x]
-            region = region[:,None]
+            region = region[:,None] # Make shape (N,1) so the multiplication works
 
             output[y,x] = np.sum(region * kernel)
 
     return output
 
+
+def computeGradientMagnitude(x_grad, y_grad):
+    if x_grad.shape != y_grad.shape:
+        raise ValueError("X and Y gradient maps must be same size")
+
+    y_dim, x_dim = x_grad.shape
+
+
+    magnitude = np.zeros((y_dim,x_dim))
+    for y in range(y_dim):
+        for x in range(x_dim):
+            magnitude[y,x] = np.sqrt(np.square(x_grad[y,x] + np.square(y_grad[y,x])))
+
+    return magnitude
+
+def nonMaxSuppression(magnitude, x_grad, y_grad):
+    y_dim, x_dim = gradientMap.shape
+
+    for y in range(y_dim):
+        for x in range(x_dim):
+            # TODO: Iterate through each pixel, calculate direction then examine two pixels on that direction
+            # will probably need to write a liner interpolation function.
 
 
 
@@ -103,11 +125,14 @@ img = Image.open(sys.argv[1]).convert('L')
 
 img_array = np.array(img)
 
-kernel = createGaussian(5,100)
+Gaussian = createGaussian(5,1)
+DerivativeGaussian = createDerivativeGaussian(5,1)
 
-outputX = convolveX(img_array,kernel )
-outputY = convolveY(img_array,kernel.T)
+outputX = convolveX(convolveX(img_array,Gaussian),DerivativeGaussian)
+outputY = convolveY(convolveY(img_array,Gaussian.T), DerivativeGaussian.T)
 
-Image.fromarray(outputX).show()
+gradientMap = computeGradientMagnitude(outputX, outputY)
+#Image.fromarray(outputX).show()
 
-Image.fromarray(outputY).show()
+#Image.fromarray(outputY).show()
+Image.fromarray(gradientMap).show()
