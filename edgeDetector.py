@@ -46,6 +46,32 @@ def createDerivativeGaussian(size,sigma):
     return kernel.reshape(1, size)
 
 
+# Convolution function, will use zero padding
+def convolveX(image, kernel):
+
+    # Iterate through every position in the input
+    y_dim, x_dim = image.shape
+
+    kernel_size = kernel.shape[1]
+
+    # edge pad the iamge
+    padded_image =np.pad(image, 
+                          pad_width=((0,0),(kernel_size//2,kernel_size//2)),
+                          mode='edge')
+
+    output = np.zeros((y_dim,x_dim))
+
+    # Loop over original image dimensions
+    for y in range(y_dim):
+        for x in range(x_dim):
+            region = padded_image[y, x : x + kernel_size]
+
+            output[y,x] = np.sum(region * kernel)
+
+
+    return output
+
+
 
 
 
@@ -55,9 +81,11 @@ if len(sys.argv) < 1:
 
 
 img = Image.open(sys.argv[1]).convert('L')
-img.show()
 
 img_array = np.array(img)
 
-print(createGaussian(5,1))
+kernel = createGaussian(5,1000)
 
+output = convolveX(img_array,kernel )
+img = Image.fromarray(output)
+img.show()
