@@ -106,7 +106,21 @@ def computeGradientMagnitude(x_grad, y_grad):
 
     return magnitude
 
-def nonMaxSuppression(magnitude, x_grad, y_grad):
+def computeGradientDirection(x_grad, y_grad):
+    if x_grad.shape != y_gra.shape:
+        raise ValueError("X and Y gradient maps must be same size.")
+
+    y_dim, x_dim = x_grad.shape
+
+    directions = np.zeros((y_dim,x_dim))
+    for y in range(y_dim):
+        for x in range (x_dim):
+            directions[y,x]=np.atan2(y_grad[y,x], x_grad[y,x])
+    return directions
+
+
+
+def nonMaxSuppression(magnitude,directions ,x_grad, y_grad):
     y_dim, x_dim = gradientMap.shape
 
     for y in range(y_dim):
@@ -132,6 +146,7 @@ outputX = convolveX(convolveX(img_array,Gaussian),DerivativeGaussian)
 outputY = convolveY(convolveY(img_array,Gaussian.T), DerivativeGaussian.T)
 
 gradientMap = computeGradientMagnitude(outputX, outputY)
+directionMap = computeGradientDirection(outputX,outputY)
 #Image.fromarray(outputX).show()
 
 #Image.fromarray(outputY).show()
