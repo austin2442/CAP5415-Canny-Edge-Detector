@@ -107,7 +107,7 @@ def computeGradientMagnitude(x_grad, y_grad):
     return magnitude
 
 def computeGradientDirection(x_grad, y_grad):
-    if x_grad.shape != y_gra.shape:
+    if x_grad.shape != y_grad.shape:
         raise ValueError("X and Y gradient maps must be same size.")
 
     y_dim, x_dim = x_grad.shape
@@ -115,19 +115,52 @@ def computeGradientDirection(x_grad, y_grad):
     directions = np.zeros((y_dim,x_dim))
     for y in range(y_dim):
         for x in range (x_dim):
-            directions[y,x]=np.atan2(y_grad[y,x], x_grad[y,x])
+            radian_angle =np.atan2(y_grad[y,x], x_grad[y,x])
+
+            directions[y,x] =np.degrees(radian_angle) % 360
     return directions
 
 
 
-def nonMaxSuppression(magnitude,directions ,x_grad, y_grad):
-    y_dim, x_dim = gradientMap.shape
 
-    for y in range(y_dim):
-        for x in range(x_dim):
-            # TODO: Iterate through each pixel, calculate direction then examine two pixels on that direction
-            # will probably need to write a liner interpolation function.
+def nonMaxSuppression(magnitude, directions, x_grad, y_grad):
+    y_dim, x_dim = magnitude.shape
+    output = np.zeros((y_dim, x_dim))
 
+    for y in range(1, y_dim-1):
+        for x in range(1, x_dim-1):
+            clampedDirection = directions[y,x] % 180
+
+            if clampedDirection >= 0 and clampedDirection < 45:
+                weight = np.tan(np.deg2rad(clampedDirection))
+                forwardPixel1, forwardPixel2 = (y, x+1), (y+1, x+1)
+                backwardPixel1, backwardPixel2 = (y, x-1), (y-1, x-1)
+
+            elif clampedDirection >= 45 and clampedDirection < 90:
+                weight = 1.0 / np.tan(np.deg2rad(clampedDirection))
+                forwardPixel1, forwardPixel2 = (y+1, x), (y+1, x+1)
+                backwardPixel1, backwardPixel2 = (y-1, x), (y-1, x-1)
+
+            elif clampedDirection >= 90 and clampedDirection < 135:
+                weight = abs(1.0 / np.tan(np.deg2rad(clampedDirection)))
+                forwardPixel1, forwardPixel2 = (y+1, x), (y+1, x-1)
+                backwardPixel1, backwardPixel2 = (y-1, x), (y-1, x+1)
+
+            elif clampedDirection >= 135 and clampedDirection <= 180:
+                weight = abs(np.tan(np.deg2rad(clampedDirection)))
+                forwardPixel1, forwardPixel2 = (y, x-1), (y+1, x-1)
+                backwardPixel1, backwardPixel2 = (y, x+1), (y-1, x+1)
+
+            # Final transformation mapping
+            forwardMagnitude = (1 - weight) * magnitude[forwardPixel1] + weight * magnitude[forwardPixel2]
+            backwardMagnitude = (1 - weight) * magnitude[backwardPixel1] + weight * magnitude[backwardPixel2]
+            
+            if magnitude[y,x] >= forwardMagnitude and magnitude[y,x] >= backwardMagnitude:
+                output[y,x] = magnitude[y,x]
+            else:
+                output[y,x] = 0
+
+    return output
 
 
 if len(sys.argv) < 1:
@@ -147,7 +180,10 @@ outputY = convolveY(convolveY(img_array,Gaussian.T), DerivativeGaussian.T)
 
 gradientMap = computeGradientMagnitude(outputX, outputY)
 directionMap = computeGradientDirection(outputX,outputY)
+
+nonMaxSuppressionOutput = nonMaxSuppression(gradientMap,directionMap,outputX,outputY)
 #Image.fromarray(outputX).show()
 
 #Image.fromarray(outputY).show()
 Image.fromarray(gradientMap).show()
+Image.fromarray(nonMaxSuppressionOutput).show()
