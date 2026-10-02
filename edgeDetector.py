@@ -226,13 +226,27 @@ def nonMaxSuppression(magnitude, directions):
     return output
 
 
+# Function that calculates some automated hysteresis threshold values based
+# on gradient magnitdue values. I read online this is a decent idea.
+def calculateThreshold(magnitude, high_percentile=90, low_ratio=0.3):
+    positive_magnitudes = magnitude[magnitude > 0]
+
+    # High Threshold: Pick value at "high_percentile"
+    high_tresh = np.percentile(positive_magnitudes, high_percentile)
+
+    # Low Threshold: Pick a fraction of high treshold
+    low_thresh = high_tresh * low_ratio
+
+    return low_thresh, high_tresh
+
+
 # Function that does full Canny Edge Detection
 # image_arr: Input image as a NumPy Array
 # kernel_size: Size for square Gaussian kernels
 # sigma: Standard deviation for Gaussian kernels
 # low_thresh: Low threshold for Hysteresis Thresholding
 # high_thresh: High threshold for Hysteresis Thresholding
-def CannyEdge(image_arr, kernel_size, sigma, low_thresh, high_thresh):
+def CannyEdge(image_arr, kernel_size, sigma):
 
     # Create kernels
     Gaussian = createGaussian(kernel_size,sigma)
@@ -263,6 +277,9 @@ def CannyEdge(image_arr, kernel_size, sigma, low_thresh, high_thresh):
     # Do non-max surpression
     nonMaxSuppressionOutput = nonMaxSuppression(gradientMap,directionMap)
 
+
+    low_thresh, high_thresh = calculateThreshold(nonMaxSuppressionOutput)
+
     # Do Hysteresis Thresholding
     final_res = hysteresis_thresholding(nonMaxSuppressionOutput,low_thresh, high_thresh)
     return final_res
@@ -270,13 +287,18 @@ def CannyEdge(image_arr, kernel_size, sigma, low_thresh, high_thresh):
 
 
 
-if len(sys.argv) < 1:
-    print("No arguments provided. Please pass a image file when running.")
+if len(sys.argv) < 2:
+    print("Two arguments must be provided, first is filepath second is sigma")
     sys.exit(0)
 
 img = Image.open(sys.argv[1]).convert('L')
+
+img.save("input.jpg")
+
 img_array = np.array(img)
 
-res = CannyEdge(img_array,5,1,5,20)
+
+
+res = CannyEdge(img_array,5,float(sys.argv[2]))
 res_img = Image.fromarray(res)
 res_img.save("output.png")
