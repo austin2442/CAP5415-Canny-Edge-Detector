@@ -90,8 +90,11 @@ def convolveX(image, kernel):
     # Loop over original image dimensions
     for y in range(y_dim):
         for x in range(x_dim):
+
+            # Extract region around pixel
             region = padded_image[y, x : x + kernel_size]
 
+            # Do component wise product and sum.
             output[y,x] = np.sum(region * kernel)
 
 
@@ -144,8 +147,11 @@ def computeGradientDirection(x_grad, y_grad):
     directions = np.zeros((y_dim,x_dim))
     for y in range(y_dim):
         for x in range (x_dim):
+
+            # Calculate angle in radians
             radian_angle =np.atan2(y_grad[y,x], x_grad[y,x])
 
+            # Convert to angles
             directions[y,x] =np.degrees(radian_angle) % 360
     return directions
 
@@ -154,7 +160,7 @@ def hysteresis_thresholding(image, low_thresh, high_thresh):
 
     # Create Boolean masks
 
-    # Boolean mask of all pixels above high treshold
+    # Boolean mask of all pixels above high threshold
     strong_edges = image > high_thresh
 
     # Boolean mask of all pixels above low threshold
@@ -194,7 +200,11 @@ def nonMaxSuppression(magnitude, directions):
 
             # For each of the 4 cases, determine the pixels we will interpolate with and how to weigh each pixel
             if clampedDirection >= 0 and clampedDirection < 45:
+
+                # Weight for how to weight influence of each point
                 weight = np.tan(np.deg2rad(clampedDirection))
+
+                # Calculate the forward and backward pixels
                 forwardPixel1, forwardPixel2 = (y, x+1), (y+1, x+1)
                 backwardPixel1, backwardPixel2 = (y, x-1), (y-1, x-1)
 
@@ -227,14 +237,15 @@ def nonMaxSuppression(magnitude, directions):
 
 
 # Function that calculates some automated hysteresis threshold values based
-# on gradient magnitdue values. I read online this is a decent idea.
+# on gradient magnitude values. I read online this is a decent idea.
 def calculateThreshold(magnitude, high_percentile=90, low_ratio=0.3):
+    # Find all non-zero gradients
     positive_magnitudes = magnitude[magnitude > 0]
 
     # High Threshold: Pick value at "high_percentile"
     high_tresh = np.percentile(positive_magnitudes, high_percentile)
 
-    # Low Threshold: Pick a fraction of high treshold
+    # Low Threshold: Pick a fraction of high threshold
     low_thresh = high_tresh * low_ratio
 
     return low_thresh, high_tresh
@@ -244,8 +255,6 @@ def calculateThreshold(magnitude, high_percentile=90, low_ratio=0.3):
 # image_arr: Input image as a NumPy Array
 # kernel_size: Size for square Gaussian kernels
 # sigma: Standard deviation for Gaussian kernels
-# low_thresh: Low threshold for Hysteresis Thresholding
-# high_thresh: High threshold for Hysteresis Thresholding
 def CannyEdge(image_arr, kernel_size, sigma):
 
     # Create kernels
